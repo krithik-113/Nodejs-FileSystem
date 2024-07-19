@@ -1,33 +1,42 @@
-const fsPromises = require('fs').promises
-const fs = require('fs')
-const path = require('path')
-const {format} = require('date-fns')
+const { createDir, names, readAllFilesFromDir } = require("./filing");
 
-const createDir = async () => {
-    const date_Time = `${format(new Date(), "ddmmyyyy_hhmmss")}`;
-     const file_Date = `${format(new Date(), "dd/mm/yyyy-hh:mm:ss")}`;
-    try {
-        if (!fs.existsSync(path.join(__dirname,'./files'))) {
-         await fsPromises.mkdir(path.join(__dirname,'./files'));
-        }
-        // creating lines
-        await fsPromises.appendFile(path.join(__dirname,'./files',`${date_Time}.txt`), `${file_Date}-\t I am doing guvi- Task\n`)
-        
-    } catch (err) {
-        console.error('Error Occured: ',err)
-    }
-}
+const express = require('express')
+const app = express()
+const bodyParser = require('body-parser')
+const PORT = process.env.PORT || 3500
 
-createDir()
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({extended:false}))
 
-const readAllFilesFromDir = async () => {
-    try {
-        const files = await fsPromises.readdir(path.join(__dirname,'./files')); 
-        if(files.length) console.log(files)
-    } catch (err) {
-        console.error(err)
-    }
+const msg = []
+
+app.get("/", (req, res) => {
     
-}
+    if (msg.length) {
+        msg.forEach((val) => {
+                createDir(val.message);
+            
+        })
+    }
+    return res.json({
+      message: msg.map(val=>val.message)
+    });
+});
 
-readAllFilesFromDir()
+app.post('/content', (req, res) => {
+    msg.push({
+      message: req.body.message
+    });
+    res.json(msg)
+})
+
+app.get('/filename',async (req, res) => {
+        return res.json({
+          content: await readAllFilesFromDir(),
+        })
+   
+})
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running Succesfully on port ${PORT}`)
+})
